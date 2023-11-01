@@ -1,125 +1,275 @@
-const keys = document.querySelectorAll('.key');
-const display_input = document.querySelector('.display .input');
-const display_output = document.querySelector('.display .output');
+function _extends() {_extends = Object.assign || function (target) {for (var i = 1; i < arguments.length; i++) {var source = arguments[i];for (var key in source) {if (Object.prototype.hasOwnProperty.call(source, key)) {target[key] = source[key];}}}return target;};return _extends.apply(this, arguments);}function _defineProperty(obj, key, value) {if (key in obj) {Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true });} else {obj[key] = value;}return obj;}const PointTarget = ReactPoint.PointTarget;
 
-let input = "";
+class AutoScalingText extends React.Component {constructor(...args) {super(...args);_defineProperty(this, "state",
+    {
+      scale: 1 });}
 
-for (let key of keys) {
-	const value = key.dataset.key;
 
-	key.addEventListener('click', () => {
-		if (value == "clear") {
-			input = "";
-			display_input.innerHTML = "";
-			display_output.innerHTML = "";
-		} else if (value == "backspace") {
-			input = input.slice(0, -1);
-			display_input.innerHTML = CleanInput(input);
-		} else if (value == "=") {
-			let result = eval(PerpareInput(input));
+  componentDidUpdate() {
+    const { scale } = this.state;
 
-			display_output.innerHTML = CleanOutput(result);
-		} else if (value == "brackets") {
-			if (
-				input.indexOf("(") == -1 || 
-				input.indexOf("(") != -1 && 
-				input.indexOf(")") != -1 && 
-				input.lastIndexOf("(") < input.lastIndexOf(")")
-			) {
-				input += "(";
-			} else if (
-				input.indexOf("(") != -1 && 
-				input.indexOf(")") == -1 || 
-				input.indexOf("(") != -1 &&
-				input.indexOf(")") != -1 &&
-				input.lastIndexOf("(") > input.lastIndexOf(")")
-			) {
-				input += ")";
-			}
+    const node = this.node;
+    const parentNode = node.parentNode;
 
-			display_input.innerHTML = CleanInput(input);
-		} else {
-			if (ValidateInput(value)) {
-				input += value;
-				display_input.innerHTML = CleanInput(input);
-			}
-		}
-	})
-}
+    const availableWidth = parentNode.offsetWidth;
+    const actualWidth = node.offsetWidth;
+    const actualScale = availableWidth / actualWidth;
 
-function CleanInput(input) {
-	let input_array = input.split("");
-	let input_array_length = input_array.length;
+    if (scale === actualScale)
+    return;
 
-	for (let i = 0; i < input_array_length; i++) {
-		if (input_array[i] == "*") {
-			input_array[i] = ` <span class="operator">x</span> `;
-		} else if (input_array[i] == "/") {
-			input_array[i] = ` <span class="operator">÷</span> `;
-		} else if (input_array[i] == "+") {
-			input_array[i] = ` <span class="operator">+</span> `;
-		} else if (input_array[i] == "-") {
-			input_array[i] = ` <span class="operator">-</span> `;
-		} else if (input_array[i] == "(") {
-			input_array[i] = `<span class="brackets">(</span>`;
-		} else if (input_array[i] == ")") {
-			input_array[i] = `<span class="brackets">)</span>`;
-		} else if (input_array[i] == "%") {
-			input_array[i] = `<span class="percent">%</span>`;
-		}
-	}
+    if (actualScale < 1) {
+      this.setState({ scale: actualScale });
+    } else if (scale < 1) {
+      this.setState({ scale: 1 });
+    }
+  }
 
-	return input_array.join("");
-}
+  render() {
+    const { scale } = this.state;
 
-function CleanOutput (output) {
-	let output_string = output.toString();
-	let decimal = output_string.split(".")[1];
-	output_string = output_string.split(".")[0];
+    return /*#__PURE__*/(
+      React.createElement("div", {
+        className: "auto-scaling-text",
+        style: { transform: `scale(${scale},${scale})` },
+        ref: node => this.node = node },
+      this.props.children));
 
-	let output_array = output_string.split("");
-	
-	if (output_array.length > 3) {
-		for (let i = output_array.length - 3; i > 0; i -= 3) {
-			output_array.splice(i, 0, ",");
-		}
-	}
+  }}
 
-	if (decimal) {
-		output_array.push(".");
-		output_array.push(decimal);
-	}
 
-	return output_array.join("");
-}
+class CalculatorDisplay extends React.Component {
+  render() {
+    const { value, ...props } = this.props;
 
-function ValidateInput (value) {
-	let last_input = input.slice(-1);
-	let operators = ["+", "-", "*", "/"];
+    const language = navigator.language || 'en-US';
+    let formattedValue = parseFloat(value).toLocaleString(language, {
+      useGrouping: true,
+      maximumFractionDigits: 6 });
 
-	if (value == "." && last_input == ".") {
-		return false;
-	}
 
-	if (operators.includes(value)) {
-		if (operators.includes(last_input)) {
-			return false;
-		} else {
-			return true;
-		}
-	}
+    // Add back missing .0 in e.g. 12.0
+    const match = value.match(/\.\d*?(0*)$/);
 
-	return true;
-}
+    if (match)
+    formattedValue += /[1-9]/.test(match[0]) ? match[1] : match[0];
 
-function PerpareInput (input) {
-	let input_array = input.split("");
+    return /*#__PURE__*/(
+      React.createElement("div", _extends({}, props, { className: "calculator-display" }), /*#__PURE__*/
+      React.createElement(AutoScalingText, null, formattedValue)));
 
-	for (let i = 0; i < input_array.length; i++) {
-		if (input_array[i] == "%") {
-			input_array[i] = "/100";
-		}
-	}
 
-	return input_array.join("");
-}
+  }}
+
+
+class CalculatorKey extends React.Component {
+  render() {
+    const { onPress, className, ...props } = this.props;
+
+    return /*#__PURE__*/(
+      React.createElement(PointTarget, { onPoint: onPress }, /*#__PURE__*/
+      React.createElement("button", _extends({ className: `calculator-key ${className}` }, props))));
+
+
+  }}
+
+
+const CalculatorOperations = {
+  '/': (prevValue, nextValue) => prevValue / nextValue,
+  '*': (prevValue, nextValue) => prevValue * nextValue,
+  '+': (prevValue, nextValue) => prevValue + nextValue,
+  '-': (prevValue, nextValue) => prevValue - nextValue,
+  '=': (prevValue, nextValue) => nextValue };
+
+
+class Calculator extends React.Component {constructor(...args) {super(...args);_defineProperty(this, "state",
+    {
+      value: null,
+      displayValue: '0',
+      operator: null,
+      waitingForOperand: false });_defineProperty(this, "handleKeyDown",
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    event => {
+      let { key } = event;
+
+      if (key === 'Enter')
+      key = '=';
+
+      if (/\d/.test(key)) {
+        event.preventDefault();
+        this.inputDigit(parseInt(key, 10));
+      } else if (key in CalculatorOperations) {
+        event.preventDefault();
+        this.performOperation(key);
+      } else if (key === '.') {
+        event.preventDefault();
+        this.inputDot();
+      } else if (key === '%') {
+        event.preventDefault();
+        this.inputPercent();
+      } else if (key === 'Backspace') {
+        event.preventDefault();
+        this.clearLastChar();
+      } else if (key === 'Clear') {
+        event.preventDefault();
+
+        if (this.state.displayValue !== '0') {
+          this.clearDisplay();
+        } else {
+          this.clearAll();
+        }
+      }
+    });}clearAll() {this.setState({ value: null, displayValue: '0', operator: null, waitingForOperand: false });}clearDisplay() {this.setState({ displayValue: '0' });}clearLastChar() {const { displayValue } = this.state;this.setState({ displayValue: displayValue.substring(0, displayValue.length - 1) || '0' });}toggleSign() {const { displayValue } = this.state;const newValue = parseFloat(displayValue) * -1;this.setState({ displayValue: String(newValue) });}inputPercent() {const { displayValue } = this.state;const currentValue = parseFloat(displayValue);if (currentValue === 0) return;const fixedDigits = displayValue.replace(/^-?\d*\.?/, '');const newValue = parseFloat(displayValue) / 100;this.setState({ displayValue: String(newValue.toFixed(fixedDigits.length + 2)) });}inputDot() {const { displayValue } = this.state;if (!/\./.test(displayValue)) {this.setState({ displayValue: displayValue + '.', waitingForOperand: false });}}inputDigit(digit) {const { displayValue, waitingForOperand } = this.state;if (waitingForOperand) {this.setState({ displayValue: String(digit), waitingForOperand: false });} else {this.setState({ displayValue: displayValue === '0' ? String(digit) : displayValue + digit });}}performOperation(nextOperator) {const { value, displayValue, operator } = this.state;const inputValue = parseFloat(displayValue);if (value == null) {this.setState({ value: inputValue });} else if (operator) {const currentValue = value || 0;const newValue = CalculatorOperations[operator](currentValue, inputValue);this.setState({ value: newValue, displayValue: String(newValue) });}this.setState({ waitingForOperand: true, operator: nextOperator });}
+
+  componentDidMount() {
+    document.addEventListener('keydown', this.handleKeyDown);
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener('keydown', this.handleKeyDown);
+  }
+
+  render() {
+    const { displayValue } = this.state;
+
+    const clearDisplay = displayValue !== '0';
+    const clearText = clearDisplay ? 'C' : 'AC';
+
+    return /*#__PURE__*/(
+      React.createElement("div", { className: "calculator" }, /*#__PURE__*/
+      React.createElement(CalculatorDisplay, { value: displayValue }), /*#__PURE__*/
+      React.createElement("div", { className: "calculator-keypad" }, /*#__PURE__*/
+      React.createElement("div", { className: "input-keys" }, /*#__PURE__*/
+      React.createElement("div", { className: "function-keys" }, /*#__PURE__*/
+      React.createElement(CalculatorKey, { className: "key-clear", onPress: () => clearDisplay ? this.clearDisplay() : this.clearAll() }, clearText), /*#__PURE__*/
+      React.createElement(CalculatorKey, { className: "key-sign", onPress: () => this.toggleSign() }, "\xB1"), /*#__PURE__*/
+      React.createElement(CalculatorKey, { className: "key-percent", onPress: () => this.inputPercent() }, "%")), /*#__PURE__*/
+
+      React.createElement("div", { className: "digit-keys" }, /*#__PURE__*/
+      React.createElement(CalculatorKey, { className: "key-0", onPress: () => this.inputDigit(0) }, "0"), /*#__PURE__*/
+      React.createElement(CalculatorKey, { className: "key-dot", onPress: () => this.inputDot() }, "\u25CF"), /*#__PURE__*/
+      React.createElement(CalculatorKey, { className: "key-1", onPress: () => this.inputDigit(1) }, "1"), /*#__PURE__*/
+      React.createElement(CalculatorKey, { className: "key-2", onPress: () => this.inputDigit(2) }, "2"), /*#__PURE__*/
+      React.createElement(CalculatorKey, { className: "key-3", onPress: () => this.inputDigit(3) }, "3"), /*#__PURE__*/
+      React.createElement(CalculatorKey, { className: "key-4", onPress: () => this.inputDigit(4) }, "4"), /*#__PURE__*/
+      React.createElement(CalculatorKey, { className: "key-5", onPress: () => this.inputDigit(5) }, "5"), /*#__PURE__*/
+      React.createElement(CalculatorKey, { className: "key-6", onPress: () => this.inputDigit(6) }, "6"), /*#__PURE__*/
+      React.createElement(CalculatorKey, { className: "key-7", onPress: () => this.inputDigit(7) }, "7"), /*#__PURE__*/
+      React.createElement(CalculatorKey, { className: "key-8", onPress: () => this.inputDigit(8) }, "8"), /*#__PURE__*/
+      React.createElement(CalculatorKey, { className: "key-9", onPress: () => this.inputDigit(9) }, "9"))), /*#__PURE__*/
+
+
+      React.createElement("div", { className: "operator-keys" }, /*#__PURE__*/
+      React.createElement(CalculatorKey, { className: "key-divide", onPress: () => this.performOperation('/') }, "\xF7"), /*#__PURE__*/
+      React.createElement(CalculatorKey, { className: "key-multiply", onPress: () => this.performOperation('*') }, "\xD7"), /*#__PURE__*/
+      React.createElement(CalculatorKey, { className: "key-subtract", onPress: () => this.performOperation('-') }, "\u2212"), /*#__PURE__*/
+      React.createElement(CalculatorKey, { className: "key-add", onPress: () => this.performOperation('+') }, "+"), /*#__PURE__*/
+      React.createElement(CalculatorKey, { className: "key-equals", onPress: () => this.performOperation('=') }, "=")))));
+
+
+
+
+  }}
+
+
+ReactDOM.render( /*#__PURE__*/
+React.createElement(Calculator, null),
+document.getElementById('app'));
